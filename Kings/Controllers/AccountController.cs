@@ -9,12 +9,17 @@ using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin.Security;
 using Kings.Models;
+using Microsoft.AspNet.Identity.EntityFramework;
+using System.Collections.Generic;
+using Negocio.Validaciones;
 
 namespace Kings.Controllers
 {
     [Authorize]
     public class AccountController : Controller
     {
+        private ApplicationDbContext userContext = new ApplicationDbContext();
+        private ValidationsDocumentType validationsDocumentType = new ValidationsDocumentType();
         private ApplicationSignInManager _signInManager;
         private ApplicationUserManager _userManager;
 
@@ -136,10 +141,21 @@ namespace Kings.Controllers
 
         //
         // GET: /Account/Register
-        [AllowAnonymous]
+        //[AllowAnonymous]
         public ActionResult Register()
         {
-            return View();
+            var documentos = validationsDocumentType.GetAllDocumentTypes();
+            ViewBag.DocumentType = new SelectList(documentos, "Id", "Name");
+            var model = new RegisterViewModel();
+            model.Password = "Secreto01+*-";
+            model.ConfirmPassword = "Secreto01+*-";
+            List<string> roles = new List<string>();
+            foreach (var item in userContext.Roles.ToList())
+            {
+                roles.Add(item.Name);
+            }
+            model.Roles = roles.ToArray();
+            return PartialView(model);
         }
 
         //
@@ -155,6 +171,15 @@ namespace Kings.Controllers
                 var result = await UserManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
+                    //Código usado para crear roles
+                    //using (ApplicationDbContext db = new ApplicationDbContext())
+                    //{
+                    //    var rol = new RoleManager<IdentityRole>(new RoleStore<IdentityRole>(db));
+                    //    rol.Create(new IdentityRole("Administrador"));
+                    //    rol.Create(new IdentityRole("Integrante"));
+                    //}
+                    //Hasta aca
+
                     await SignInManager.SignInAsync(user, isPersistent:false, rememberBrowser:false);
                     
                     // Para obtener más información sobre cómo habilitar la confirmación de cuentas y el restablecimiento de contraseña, visite https://go.microsoft.com/fwlink/?LinkID=320771
